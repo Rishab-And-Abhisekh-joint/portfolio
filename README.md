@@ -319,3 +319,4 @@ Feel free to fork this project and customize it for your own portfolio!
 **Built with ❤️ by Rishab Acharjee**
 
 *Star ⭐ this repo if you found it helpful!*
+
