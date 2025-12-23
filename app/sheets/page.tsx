@@ -163,6 +163,29 @@ const ImportModal = ({ isOpen, onClose, sheet, onImport }: { isOpen: boolean; on
   );
 };
 
+// Helper function to build correct LeetCode URL
+const buildLeetCodeUrl = (questionLink: string | undefined): string => {
+  if (!questionLink) return 'https://leetcode.com/problemset/';
+  
+  // Already a full URL
+  if (questionLink.startsWith('http://') || questionLink.startsWith('https://')) {
+    return questionLink;
+  }
+  
+  // Starts with /problems/ - just prepend domain
+  if (questionLink.startsWith('/problems/')) {
+    return `https://leetcode.com${questionLink}`;
+  }
+  
+  // Starts with / - just prepend domain
+  if (questionLink.startsWith('/')) {
+    return `https://leetcode.com${questionLink}`;
+  }
+  
+  // Just a problem slug like "two-sum"
+  return `https://leetcode.com/problems/${questionLink}/`;
+};
+
 // Daily Challenge Component
 const DailyChallenge = () => {
   const { colors } = useTheme();
@@ -172,31 +195,104 @@ const DailyChallenge = () => {
   useEffect(() => {
     const fetchAllPOTD = async () => {
       const results: any[] = [];
+      
+      // LeetCode POTD
       try {
         const lcRes = await fetch('https://alfa-leetcode-api.onrender.com/daily');
         const lcData = await lcRes.json();
-        results.push({ platform: 'LeetCode', title: lcData.questionTitle || 'Daily Challenge', link: lcData.questionLink ? `https://leetcode.com${lcData.questionLink}` : 'https://leetcode.com/problemset/', difficulty: lcData.difficulty || 'Medium', color: 'text-yellow-500', bg: 'bg-yellow-500/10 border-yellow-500/20', icon: '⚡' });
-      } catch { results.push({ platform: 'LeetCode', title: 'Daily Challenge', link: 'https://leetcode.com/problemset/', difficulty: 'Solve Now', color: 'text-yellow-500', bg: 'bg-yellow-500/10 border-yellow-500/20', icon: '⚡' }); }
-      results.push({ platform: 'GeeksforGeeks', title: 'Problem of the Day', link: 'https://www.geeksforgeeks.org/problem-of-the-day', difficulty: 'Solve Now', color: 'text-green-500', bg: 'bg-green-500/10 border-green-500/20', icon: '🎯' });
-      results.push({ platform: 'CodeChef', title: 'Daily Practice', link: 'https://www.codechef.com/practice', difficulty: 'Solve Now', color: 'text-amber-600', bg: 'bg-amber-600/10 border-amber-600/20', icon: '👨‍🍳' });
-      results.push({ platform: 'Codeforces', title: 'Practice Problem', link: 'https://codeforces.com/problemset', difficulty: 'Solve Now', color: 'text-blue-500', bg: 'bg-blue-500/10 border-blue-500/20', icon: '🏆' });
-      setPotdData(results); setLoading(false);
+        results.push({ 
+          platform: 'LeetCode', 
+          title: lcData.questionTitle || 'Daily Challenge', 
+          link: buildLeetCodeUrl(lcData.questionLink), 
+          difficulty: lcData.difficulty || 'Medium', 
+          color: 'text-yellow-500', 
+          bg: 'bg-yellow-500/10 border-yellow-500/20', 
+          icon: '⚡' 
+        });
+      } catch { 
+        results.push({ 
+          platform: 'LeetCode', 
+          title: 'Daily Challenge', 
+          link: 'https://leetcode.com/problemset/', 
+          difficulty: 'Solve Now', 
+          color: 'text-yellow-500', 
+          bg: 'bg-yellow-500/10 border-yellow-500/20', 
+          icon: '⚡' 
+        }); 
+      }
+      
+      // Other platforms
+      results.push({ 
+        platform: 'GeeksforGeeks', 
+        title: 'Problem of the Day', 
+        link: 'https://www.geeksforgeeks.org/problem-of-the-day', 
+        difficulty: 'Solve Now', 
+        color: 'text-green-500', 
+        bg: 'bg-green-500/10 border-green-500/20', 
+        icon: '🎯' 
+      });
+      results.push({ 
+        platform: 'CodeChef', 
+        title: 'Daily Practice', 
+        link: 'https://www.codechef.com/practice', 
+        difficulty: 'Solve Now', 
+        color: 'text-amber-600', 
+        bg: 'bg-amber-600/10 border-amber-600/20', 
+        icon: '👨‍🍳' 
+      });
+      results.push({ 
+        platform: 'Codeforces', 
+        title: 'Practice Problem', 
+        link: 'https://codeforces.com/problemset', 
+        difficulty: 'Solve Now', 
+        color: 'text-blue-500', 
+        bg: 'bg-blue-500/10 border-blue-500/20', 
+        icon: '🏆' 
+      });
+      
+      setPotdData(results); 
+      setLoading(false);
     };
     fetchAllPOTD();
   }, []);
 
   return (
     <div className="mb-12">
-      <div className="flex items-center gap-2 mb-6"><Flame className="text-orange-500" size={24} /><h2 className="text-2xl font-bold text-white">Problem of the Day</h2><span className="text-xs text-gray-500 ml-2">from all platforms</span></div>
-      {loading ? <div className="flex items-center justify-center py-10"><Loader2 className="animate-spin text-gray-500" size={32} /></div> : (
+      <div className="flex items-center gap-2 mb-6">
+        <Flame className="text-orange-500" size={24} />
+        <h2 className="text-2xl font-bold text-white">Problem of the Day</h2>
+        <span className="text-xs text-gray-500 ml-2">from all platforms</span>
+      </div>
+      {loading ? (
+        <div className="flex items-center justify-center py-10">
+          <Loader2 className="animate-spin text-gray-500" size={32} />
+        </div>
+      ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {potdData.map((potd, i) => (
-            <motion.a key={i} href={potd.link} target="_blank" rel="noreferrer" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className={`relative block bg-slate-800/50 border border-white/10 rounded-xl p-5 ${colors.hoverColor} hover:border-white/20 transition-all group overflow-hidden`}>
+            <motion.a 
+              key={i} 
+              href={potd.link} 
+              target="_blank" 
+              rel="noreferrer" 
+              initial={{ opacity: 0, y: 20 }} 
+              animate={{ opacity: 1, y: 0 }} 
+              transition={{ delay: i * 0.1 }} 
+              className={`relative block bg-slate-800/50 border border-white/10 rounded-xl p-5 ${colors.hoverColor} hover:border-white/20 transition-all group overflow-hidden`}
+            >
               <div className="absolute top-0 right-0 p-3 opacity-10 text-6xl">{potd.icon}</div>
               <div className="relative z-10">
-                <div className="flex justify-between items-start mb-3"><span className={`text-xs font-bold px-2 py-1 rounded border ${potd.bg} ${potd.color}`}>{potd.platform}</span><ExternalLink size={14} className="text-gray-500 group-hover:text-white transition-colors" /></div>
+                <div className="flex justify-between items-start mb-3">
+                  <span className={`text-xs font-bold px-2 py-1 rounded border ${potd.bg} ${potd.color}`}>{potd.platform}</span>
+                  <ExternalLink size={14} className="text-gray-500 group-hover:text-white transition-colors" />
+                </div>
                 <h3 className="font-bold text-white mb-2 group-hover:text-inherit transition-colors line-clamp-2 text-sm">{potd.title}</h3>
-                <span className={`text-xs px-2 py-0.5 rounded font-medium border ${potd.difficulty === 'Easy' ? 'text-green-400 border-green-500/20 bg-green-500/5' : potd.difficulty === 'Medium' ? 'text-yellow-400 border-yellow-500/20 bg-yellow-500/5' : potd.difficulty === 'Hard' ? 'text-red-400 border-red-500/20 bg-red-500/5' : `${colors.textAccent} ${colors.borderAccent} ${colors.bgAccentMuted}`}`}>{potd.difficulty}</span>
+                <span className={`text-xs px-2 py-0.5 rounded font-medium border ${
+                  potd.difficulty === 'Easy' ? 'text-green-400 border-green-500/20 bg-green-500/5' : 
+                  potd.difficulty === 'Medium' ? 'text-yellow-400 border-yellow-500/20 bg-yellow-500/5' : 
+                  potd.difficulty === 'Hard' ? 'text-red-400 border-red-500/20 bg-red-500/5' : 
+                  `${colors.textAccent} ${colors.borderAccent} ${colors.bgAccentMuted}`
+                }`}>{potd.difficulty}</span>
               </div>
             </motion.a>
           ))}
