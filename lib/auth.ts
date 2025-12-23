@@ -11,7 +11,17 @@ export interface User {
   name: string;
   profileComplete: boolean;
 }
+// Add this function to lib/auth.ts
 
+export async function isAuthenticated(): Promise<boolean> {
+  try {
+    const user = await getCurrentUser();
+    return user !== null;
+  } catch (error) {
+    console.error('Error checking authentication:', error);
+    return false;
+  }
+}
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = await cookies();
