@@ -763,110 +763,42 @@ const EventsPage = () => {
     }
   };
 
-  // Fetch contests from multiple APIs
+  // Fetch contests from our API route
   useEffect(() => {
     const fetchContests = async () => {
       setLoading(true);
       setError(null);
       
-      let allContests: Contest[] = [];
-      let kontestsFetched = false;
-      
-      const supported = ['LeetCode', 'CodeForces', 'Codeforces', 'AtCoder', 'CodeChef', 'HackerRank', 'HackerEarth', 'TopCoder', 'GeeksforGeeks', 'geeks_for_geeks', 'GFG', 'Kick_Start'];
-      
-      // Try kontests.net API with multiple CORS proxies
-      const kontestsProxies = [
-        'https://api.allorigins.win/raw?url=' + encodeURIComponent('https://kontests.net/api/v1/all'),
-        'https://corsproxy.io/?' + encodeURIComponent('https://kontests.net/api/v1/all'),
-        'https://api.codetabs.com/v1/proxy?quest=' + encodeURIComponent('https://kontests.net/api/v1/all'),
-      ];
-      
-      for (const proxyUrl of kontestsProxies) {
-        if (kontestsFetched) break;
-        
-        try {
-          console.log('Trying kontests.net via:', proxyUrl.split('?')[0]);
-          const response = await fetch(proxyUrl, {
-            method: 'GET',
-            headers: { 'Accept': 'application/json' },
-          });
-          
-          if (!response.ok) continue;
-          
-          const text = await response.text();
-          let data;
-          try {
-            data = JSON.parse(text);
-          } catch {
-            continue;
-          }
-          
-          if (Array.isArray(data) && data.length > 0) {
-            const filtered = data
-              .filter((c: any) => {
-                const normalizedSite = normalizePlatformName(c.site || '');
-                return supported.includes(c.site) || supported.includes(normalizedSite);
-              })
-              .map((c: any) => ({
-                ...c,
-                site: normalizePlatformName(c.site),
-                id: `${normalizePlatformName(c.site)}-${c.name}-${c.start_time}`.replace(/\s+/g, '-').toLowerCase()
-              }));
-            
-            if (filtered.length > 0) {
-              allContests = filtered;
-              kontestsFetched = true;
-              console.log('✅ Fetched', filtered.length, 'contests from kontests.net');
-            }
-          }
-        } catch (e) {
-          console.log('❌ Proxy failed:', proxyUrl.split('?')[0]);
-          continue;
-        }
-      }
-      
-      // Also try Codeforces API directly (usually works without CORS issues)
       try {
-        const cfResponse = await fetch('https://codeforces.com/api/contest.list');
-        const cfData = await cfResponse.json();
+        // Use our server-side API route
+        const response = await fetch('/api/contests');
         
-        if (cfData.status === 'OK' && Array.isArray(cfData.result)) {
-          const cfContests = cfData.result.slice(0, 50).map((c: any) => ({
-            name: c.name,
-            site: 'CodeForces',
-            start_time: new Date(c.startTimeSeconds * 1000).toISOString(),
-            end_time: new Date((c.startTimeSeconds + c.durationSeconds) * 1000).toISOString(),
-            url: `https://codeforces.com/contest/${c.id}`,
-            duration: c.durationSeconds.toString(),
-            id: `codeforces-${c.id}`.toLowerCase()
-          }));
+        if (!response.ok) {
+          throw new Error('Failed to fetch contests');
+        }
+        
+        const data = await response.json();
+        
+        if (data.contests && Array.isArray(data.contests)) {
+          setContests(data.contests);
           
-          // Merge without duplicates
-          const existingNames = new Set(allContests.map(c => c.name.toLowerCase().replace(/\s+/g, '')));
+          // Set platforms from fetched data
+          const availablePlatforms = new Set<string>(data.contests.map((c: Contest) => c.site));
+          setSelectedPlatforms(availablePlatforms);
           
-          cfContests.forEach((cf: Contest) => {
-            const cfNameNormalized = cf.name.toLowerCase().replace(/\s+/g, '');
-            if (!existingNames.has(cfNameNormalized)) {
-              allContests.push(cf);
-              existingNames.add(cfNameNormalized);
-            }
-          });
+          if (!data.fetchedFromApi) {
+            setError('Some APIs unavailable. Showing available contests. Check platform websites for latest updates.');
+          }
           
-          console.log('✅ Added Codeforces contests');
+          console.log('✅ Loaded', data.contests.length, 'contests');
+          console.log('Platforms:', data.platforms);
         }
       } catch (e) {
-        console.log('❌ Codeforces API failed');
-      }
-      
-      // If we don't have contests from other platforms, add comprehensive fallback data
-      const platformsInData = new Set(allContests.map(c => c.site));
-      const missingPlatforms = ['LeetCode', 'CodeChef', 'GeeksforGeeks', 'AtCoder'].filter(p => !platformsInData.has(p));
-      
-      if (missingPlatforms.length > 0 || allContests.length < 5) {
-        console.log('Adding fallback data for platforms:', missingPlatforms.length > 0 ? missingPlatforms : 'supplementary');
-        const now = new Date();
+        console.error('Failed to fetch contests:', e);
+        setError('Failed to load contests. Please refresh the page.');
         
-        // Helper function to get next occurrence of a day
+        // Load fallback data
+        const now = new Date();
         const getNextDayOfWeek = (dayOfWeek: number, hour: number, minute: number = 0, weeksAhead: number = 0) => {
           const date = new Date(now);
           let diff = (dayOfWeek - date.getDay() + 7) % 7;
@@ -878,175 +810,46 @@ const EventsPage = () => {
           return date;
         };
         
-        const fallbackContests: Contest[] = [];
-        
-        // LeetCode Contests
-        if (!platformsInData.has('LeetCode')) {
-          fallbackContests.push(
-            {
-              id: 'leetcode-weekly-431',
-              name: 'Weekly Contest 431',
-              site: 'LeetCode',
-              start_time: getNextDayOfWeek(0, 8, 0).toISOString(), // Sunday 8:00 AM UTC
-              end_time: new Date(getNextDayOfWeek(0, 8, 0).getTime() + 5400000).toISOString(),
-              url: 'https://leetcode.com/contest/',
-              duration: '5400'
-            },
-            {
-              id: 'leetcode-weekly-432',
-              name: 'Weekly Contest 432',
-              site: 'LeetCode',
-              start_time: getNextDayOfWeek(0, 8, 0, 1).toISOString(),
-              end_time: new Date(getNextDayOfWeek(0, 8, 0, 1).getTime() + 5400000).toISOString(),
-              url: 'https://leetcode.com/contest/',
-              duration: '5400'
-            },
-            {
-              id: 'leetcode-biweekly-148',
-              name: 'Biweekly Contest 148',
-              site: 'LeetCode',
-              start_time: getNextDayOfWeek(6, 14, 30).toISOString(), // Saturday 2:30 PM UTC
-              end_time: new Date(getNextDayOfWeek(6, 14, 30).getTime() + 5400000).toISOString(),
-              url: 'https://leetcode.com/contest/',
-              duration: '5400'
-            },
-            // Past LeetCode
-            {
-              id: 'leetcode-weekly-430-past',
-              name: 'Weekly Contest 430',
-              site: 'LeetCode',
-              start_time: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-              end_time: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000 + 5400000).toISOString(),
-              url: 'https://leetcode.com/contest/weekly-contest-430/',
-              duration: '5400'
-            }
-          );
-        }
-        
-        // CodeChef Contests
-        if (!platformsInData.has('CodeChef')) {
-          fallbackContests.push(
-            {
-              id: 'codechef-starters-168',
-              name: 'Starters 168 (Rated till 5-Star)',
-              site: 'CodeChef',
-              start_time: getNextDayOfWeek(3, 14, 30).toISOString(), // Wednesday 8:00 PM IST = 2:30 PM UTC
-              end_time: new Date(getNextDayOfWeek(3, 14, 30).getTime() + 7200000).toISOString(),
-              url: 'https://www.codechef.com/contests',
-              duration: '7200'
-            },
-            {
-              id: 'codechef-starters-169',
-              name: 'Starters 169 (Rated till 5-Star)',
-              site: 'CodeChef',
-              start_time: getNextDayOfWeek(3, 14, 30, 1).toISOString(),
-              end_time: new Date(getNextDayOfWeek(3, 14, 30, 1).getTime() + 7200000).toISOString(),
-              url: 'https://www.codechef.com/contests',
-              duration: '7200'
-            },
-            // Past CodeChef
-            {
-              id: 'codechef-starters-167-past',
-              name: 'Starters 167',
-              site: 'CodeChef',
-              start_time: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000).toISOString(),
-              end_time: new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000 + 7200000).toISOString(),
-              url: 'https://www.codechef.com/START167',
-              duration: '7200'
-            }
-          );
-        }
-        
-        // GFG Contests
-        if (!platformsInData.has('GeeksforGeeks')) {
-          fallbackContests.push(
-            {
-              id: 'gfg-weekly-185',
-              name: 'GFG Weekly Coding Contest 185',
-              site: 'GeeksforGeeks',
-              start_time: getNextDayOfWeek(0, 13, 30).toISOString(), // Sunday 7:00 PM IST = 1:30 PM UTC
-              end_time: new Date(getNextDayOfWeek(0, 13, 30).getTime() + 5400000).toISOString(),
-              url: 'https://practice.geeksforgeeks.org/contests',
-              duration: '5400'
-            },
-            {
-              id: 'gfg-weekly-186',
-              name: 'GFG Weekly Coding Contest 186',
-              site: 'GeeksforGeeks',
-              start_time: getNextDayOfWeek(0, 13, 30, 1).toISOString(),
-              end_time: new Date(getNextDayOfWeek(0, 13, 30, 1).getTime() + 5400000).toISOString(),
-              url: 'https://practice.geeksforgeeks.org/contests',
-              duration: '5400'
-            },
-            // Past GFG
-            {
-              id: 'gfg-weekly-184-past',
-              name: 'GFG Weekly Coding Contest 184',
-              site: 'GeeksforGeeks',
-              start_time: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-              end_time: new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000 + 5400000).toISOString(),
-              url: 'https://practice.geeksforgeeks.org/contests',
-              duration: '5400'
-            }
-          );
-        }
-        
-        // AtCoder Contests
-        if (!platformsInData.has('AtCoder')) {
-          fallbackContests.push(
-            {
-              id: 'atcoder-abc-385',
-              name: 'AtCoder Beginner Contest 385',
-              site: 'AtCoder',
-              start_time: getNextDayOfWeek(6, 12, 0).toISOString(), // Saturday 9:00 PM JST = 12:00 PM UTC
-              end_time: new Date(getNextDayOfWeek(6, 12, 0).getTime() + 6000000).toISOString(),
-              url: 'https://atcoder.jp/contests',
-              duration: '6000'
-            },
-            {
-              id: 'atcoder-abc-386',
-              name: 'AtCoder Beginner Contest 386',
-              site: 'AtCoder',
-              start_time: getNextDayOfWeek(6, 12, 0, 1).toISOString(),
-              end_time: new Date(getNextDayOfWeek(6, 12, 0, 1).getTime() + 6000000).toISOString(),
-              url: 'https://atcoder.jp/contests',
-              duration: '6000'
-            }
-          );
-        }
-        
-        // Merge fallback contests
-        const existingIds = new Set(allContests.map(c => c.id));
-        fallbackContests.forEach(fc => {
-          if (!existingIds.has(fc.id)) {
-            allContests.push(fc);
+        const fallbackContests: Contest[] = [
+          {
+            id: 'leetcode-weekly',
+            name: 'LeetCode Weekly Contest',
+            site: 'LeetCode',
+            start_time: getNextDayOfWeek(0, 8, 0).toISOString(),
+            end_time: new Date(getNextDayOfWeek(0, 8, 0).getTime() + 5400000).toISOString(),
+            url: 'https://leetcode.com/contest/',
+            duration: '5400'
+          },
+          {
+            id: 'codeforces-round',
+            name: 'Codeforces Round',
+            site: 'CodeForces',
+            start_time: getNextDayOfWeek(5, 14, 35).toISOString(),
+            end_time: new Date(getNextDayOfWeek(5, 14, 35).getTime() + 7200000).toISOString(),
+            url: 'https://codeforces.com/contests',
+            duration: '7200'
+          },
+          {
+            id: 'codechef-starters',
+            name: 'CodeChef Starters',
+            site: 'CodeChef',
+            start_time: getNextDayOfWeek(3, 14, 30).toISOString(),
+            end_time: new Date(getNextDayOfWeek(3, 14, 30).getTime() + 7200000).toISOString(),
+            url: 'https://www.codechef.com/contests',
+            duration: '7200'
           }
-        });
+        ];
         
-        if (!kontestsFetched) {
-          setError('Live API unavailable. Showing scheduled contests. Check platform websites for latest updates.');
-        }
+        setContests(fallbackContests);
+        setSelectedPlatforms(new Set(['LeetCode', 'CodeForces', 'CodeChef']));
+      } finally {
+        setLoading(false);
       }
-      
-      // Filter by date range (past 60 days to future)
-      const sixtyDaysAgo = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
-      allContests = allContests.filter(c => new Date(c.end_time) > sixtyDaysAgo);
-      
-      // Sort by start time
-      allContests.sort((a, b) => new Date(a.start_time).getTime() - new Date(b.start_time).getTime());
-      
-      // Set platforms
-      const availablePlatforms = new Set(allContests.map(c => c.site));
-      setSelectedPlatforms(availablePlatforms);
-      
-      console.log('Total contests loaded:', allContests.length);
-      console.log('Platforms:', Array.from(availablePlatforms));
-      
-      setContests(allContests);
-      setLoading(false);
     };
 
     fetchContests();
+    
+    // Refresh every 5 minutes
     const interval = setInterval(fetchContests, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
