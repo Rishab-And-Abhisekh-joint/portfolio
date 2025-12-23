@@ -1,6 +1,11 @@
 // app/api/portfolio/[username]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db';
+import { Pool } from 'pg';
+
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false },
+});
 
 // GET - Get public portfolio by username
 export async function GET(
@@ -11,8 +16,8 @@ export async function GET(
     const { username } = params;
 
     // Find user by username
-    const userResult = await query(
-      'SELECT id, username, name, theme, profile_complete FROM users WHERE username = $1',
+    const userResult = await pool.query(
+      'SELECT id, username, name, email, theme, profile_complete FROM users WHERE username = $1',
       [username]
     );
 
@@ -22,128 +27,108 @@ export async function GET(
 
     const user = userResult.rows[0];
 
-    // Check if profile is complete
-    if (!user.profile_complete) {
-      return NextResponse.json({ error: 'Portfolio not yet published' }, { status: 404 });
-    }
+    // Initialize response data with user basics
+    const responseData: any = {
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      theme: user.theme || 'ocean',
+      profileComplete: user.profile_complete
+    };
 
-    // Fetch all public profile data
-    const [
-      profileResult,
-      experiencesResult,
-      projectsResult,
-      skillsResult,
-      skillProgressResult,
-      achievementsResult,
-      codingProfilesResult,
-      contactResult,
-      featureCardsResult
-    ] = await Promise.all([
-      query('SELECT * FROM user_profiles WHERE user_id = $1', [user.id]),
-      query('SELECT * FROM experiences WHERE user_id = $1 ORDER BY display_order', [user.id]),
-      query('SELECT * FROM projects WHERE user_id = $1 ORDER BY display_order', [user.id]),
-      query('SELECT * FROM skills WHERE user_id = $1 ORDER BY display_order', [user.id]),
-      query('SELECT * FROM skill_progress WHERE user_id = $1 ORDER BY category, display_order', [user.id]),
-      query('SELECT * FROM achievements WHERE user_id = $1 ORDER BY display_order', [user.id]),
-      query('SELECT * FROM coding_profiles WHERE user_id = $1', [user.id]),
-      query('SELECT * FROM contact_info WHERE user_id = $1', [user.id]),
-      query('SELECT * FROM feature_cards WHERE user_id = $1 ORDER BY display_order', [user.id])
-    ]);
-
-    // Transform data for frontend
-    const profile = profileResult.rows[0];
-    const contact = contactResult.rows[0];
-
-    // Transform skills from array to object format
-    const skillsObject: Record<string, any> = {};
-    for (const skill of skillsResult.rows) {
-      skillsObject[skill.category] = {
-        icon: skill.icon,
-        items: skill.items
-      };
-    }
-
-    // Transform skill progress
-    const skillProgressObject: Record<string, any> = {};
-    for (const sp of skillProgressResult.rows) {
-      if (!skillProgressObject[sp.category]) {
-        skillProgressObject[sp.category] = { skills: [] };
+    // Try to fetch profile data - handle missing tables gracefully
+    try {
+      const profileResult = await pool.query(
+        'SELECT * FROM user_profiles WHERE user_id = $1',
+        [user.id]
+      );
+      if (profileResult.rows.length > 0) {
+        const profile = profileResult.rows[0];
+        responseData.headline = profile.headline;
+        responseData.bio = profile.bio;
+        responseData.location = profile.location;
+        responseData.website = profile.website;
+        responseData.github = profile.github;
+        responseData.linkedin = profile.linkedin;
+        responseData.twitter = profile.twitter;
+        responseData.leetcode = profile.leetcode;
+        responseData.codeforces = profile.codeforces;
+        responseData.codechef = profile.codechef;
       }
-      skillProgressObject[sp.category].skills.push({
-        name: sp.skill_name,
-        percentage: sp.percentage
-      });
+    } catch (e) {
+      // Table might not exist yet
     }
 
-    // Transform coding profiles to handles format
-    const handles: Record<string, string> = {};
-    for (const cp of codingProfilesResult.rows) {
-      handles[cp.platform] = cp.username;
+    // Try to fetch experiences
+    try {
+      const expResult = await pool.query(
+        'SELECT * FROM experiences WHERE user_id = $1 ORDER BY start_date DESC',
+        [user.id]
+      );
+      responseData.experiences = expResult.rows;
+    } catch (e) {
+      responseData.experiences = [];
     }
 
-    return NextResponse.json({
-      user: {
-        username: user.username,
-        name: user.name,
-        theme: user.theme
-      },
-      profile: profile ? {
-        headline: profile.headline,
-        bio: profile.bio,
-        location: profile.location,
-        university: profile.university,
-        degree: profile.degree,
-        graduationYear: profile.graduation_year,
-        sgpa: profile.sgpa,
-        profilePhotoUrl: profile.profile_photo_url,
-        resumeUrl: profile.resume_url,
-        openToOpportunities: profile.open_to_opportunities
-      } : null,
-      experiences: experiencesResult.rows.map(exp => ({
-        company: exp.company,
-        role: exp.role,
-        period: exp.period,
-        location: exp.location,
-        type: exp.type,
-        certificationLink: exp.certification_link,
-        highlights: exp.highlights
-      })),
-      projects: projectsResult.rows.map(proj => ({
-        title: proj.title,
-        date: proj.date,
-        description: proj.description,
-        tech: proj.tech,
-        highlights: proj.highlights,
-        github: proj.github_url,
-        demo: proj.demo_url,
-        image: proj.image_url,
-        color: proj.color
-      })),
-      skills: skillsObject,
-      skillsWithProgress: skillProgressObject,
-      achievements: achievementsResult.rows.map(ach => ({
-        title: ach.title,
-        description: ach.description,
-        highlight: ach.highlight,
-        subtext: ach.subtext,
-        icon: ach.icon,
-        color: ach.color
-      })),
-      handles,
-      contact: contact ? {
-        email: contact.email,
-        phone: contact.phone,
-        linkedin: contact.linkedin_url,
-        github: contact.github_url,
-        twitter: contact.twitter_url,
-        website: contact.website_url
-      } : null,
-      featureCards: featureCardsResult.rows.map(card => ({
-        icon: card.icon,
-        title: card.title,
-        description: card.description
-      }))
-    });
+    // Try to fetch projects
+    try {
+      const projResult = await pool.query(
+        'SELECT * FROM projects WHERE user_id = $1 ORDER BY created_at DESC',
+        [user.id]
+      );
+      responseData.projects = projResult.rows;
+    } catch (e) {
+      responseData.projects = [];
+    }
+
+    // Try to fetch skills
+    try {
+      const skillsResult = await pool.query(
+        'SELECT * FROM skills WHERE user_id = $1',
+        [user.id]
+      );
+      responseData.skills = skillsResult.rows;
+    } catch (e) {
+      responseData.skills = [];
+    }
+
+    // Try to fetch coding profiles
+    try {
+      const codingResult = await pool.query(
+        'SELECT * FROM coding_profiles WHERE user_id = $1',
+        [user.id]
+      );
+      if (codingResult.rows.length > 0) {
+        const coding = codingResult.rows[0];
+        responseData.leetcode = responseData.leetcode || coding.leetcode;
+        responseData.codeforces = responseData.codeforces || coding.codeforces;
+        responseData.codechef = responseData.codechef || coding.codechef;
+        responseData.github = responseData.github || coding.github;
+      }
+    } catch (e) {
+      // Table might not exist
+    }
+
+    // Try to fetch contact info
+    try {
+      const contactResult = await pool.query(
+        'SELECT * FROM contact_info WHERE user_id = $1',
+        [user.id]
+      );
+      if (contactResult.rows.length > 0) {
+        const contact = contactResult.rows[0];
+        responseData.phone = contact.phone;
+        responseData.location = responseData.location || contact.location;
+        responseData.linkedin = responseData.linkedin || contact.linkedin_url;
+        responseData.github = responseData.github || contact.github_url;
+        responseData.website = responseData.website || contact.website_url;
+      }
+    } catch (e) {
+      // Table might not exist
+    }
+
+    return NextResponse.json(responseData);
 
   } catch (error) {
     console.error('Portfolio fetch error:', error);

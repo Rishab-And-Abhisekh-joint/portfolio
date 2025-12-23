@@ -1,22 +1,30 @@
 // lib/db.ts
 import { Pool } from 'pg';
 
-// Create connection pool
+// Check if DATABASE_URL exists
+if (!process.env.DATABASE_URL) {
+  console.warn('WARNING: DATABASE_URL is not set. Database features will not work.');
+}
+
+// Create connection pool with proper SSL for Render
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
-  max: 20,
+  // Render requires SSL
+  ssl: process.env.DATABASE_URL ? {
+    rejectUnauthorized: false  // Required for Render PostgreSQL
+  } : false,
+  max: 10,
   idleTimeoutMillis: 30000,
-  connectionTimeoutMillis: 2000,
+  connectionTimeoutMillis: 10000,  // 10 second timeout
 });
 
 // Test connection
 pool.on('connect', () => {
-  console.log('Connected to PostgreSQL database');
+  console.log('✅ Connected to PostgreSQL database');
 });
 
 pool.on('error', (err) => {
-  console.error('Unexpected error on idle client', err);
+  console.error('❌ Database pool error:', err.message);
 });
 
 // Query helper with error handling
@@ -25,10 +33,14 @@ export async function query(text: string, params?: any[]) {
   try {
     const res = await pool.query(text, params);
     const duration = Date.now() - start;
-    console.log('Executed query', { text: text.substring(0, 50), duration, rows: res.rowCount });
+    console.log('Query executed', { 
+      query: text.substring(0, 50) + '...', 
+      duration: `${duration}ms`, 
+      rows: res.rowCount 
+    });
     return res;
-  } catch (error) {
-    console.error('Database query error:', error);
+  } catch (error: any) {
+    console.error('❌ Database query error:', error.message);
     throw error;
   }
 }
@@ -52,6 +64,18 @@ export async function transaction<T>(callback: (client: any) => Promise<T>): Pro
     throw error;
   } finally {
     client.release();
+  }
+}
+
+// Test database connection
+export async function testConnection(): Promise<boolean> {
+  try {
+    const result = await pool.query('SELECT NOW()');
+    console.log('✅ Database connection test successful:', result.rows[0].now);
+    return true;
+  } catch (error: any) {
+    console.error('❌ Database connection test failed:', error.message);
+    return false;
   }
 }
 

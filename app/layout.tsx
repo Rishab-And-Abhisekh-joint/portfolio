@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Space_Grotesk, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import GlobalNavbar from '@/components/GlobalNavbar'
+import { Providers } from './providers'
 
 const spaceGrotesk = Space_Grotesk({ 
   subsets: ['latin'],
@@ -69,10 +70,12 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}>
       <body className="font-sans antialiased bg-slate-950 text-white min-h-screen">
-        <GlobalNavbar />
-        <main className="pt-20">
-          {children}
-        </main>
+        <Providers>
+          <GlobalNavbar />
+          <main className="pt-20">
+            {children}
+          </main>
+        </Providers>
       </body>
     </html>
   )

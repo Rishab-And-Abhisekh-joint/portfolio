@@ -27,11 +27,13 @@ export const colorThemes = {
     textAccent: "text-cyan-400",
     bgAccent: "bg-cyan-500",
     ringColor: "ring-cyan-500",
-    // Additional for consistency
     cardBg: "bg-slate-800/50",
     cardHoverBg: "hover:bg-slate-800/70",
     borderAccent: "border-cyan-500/30",
     shadowColor: "shadow-cyan-500/20",
+    bgAccentMuted: "bg-cyan-500/10",
+    bgAccentStrong: "bg-cyan-500/20",
+    progressBar: "from-cyan-400 to-blue-500",
   },
   sunset: {
     name: "Sunset",
@@ -57,6 +59,9 @@ export const colorThemes = {
     cardHoverBg: "hover:bg-slate-800/70",
     borderAccent: "border-orange-500/30",
     shadowColor: "shadow-orange-500/20",
+    bgAccentMuted: "bg-orange-500/10",
+    bgAccentStrong: "bg-orange-500/20",
+    progressBar: "from-orange-400 to-pink-500",
   },
   forest: {
     name: "Forest",
@@ -82,6 +87,9 @@ export const colorThemes = {
     cardHoverBg: "hover:bg-slate-800/70",
     borderAccent: "border-green-500/30",
     shadowColor: "shadow-green-500/20",
+    bgAccentMuted: "bg-green-500/10",
+    bgAccentStrong: "bg-green-500/20",
+    progressBar: "from-green-400 to-teal-500",
   }
 };
 
@@ -102,22 +110,49 @@ const ThemeContext = createContext<ThemeContextType>({
 
 export const useTheme = () => useContext(ThemeContext);
 
-export const ThemeProvider = ({ children }: { children: ReactNode }) => {
-  const [theme, setThemeState] = useState<ThemeKey>('ocean');
+interface ThemeProviderProps {
+  children: ReactNode;
+  initialTheme?: ThemeKey;
+}
+
+export const ThemeProvider = ({ children, initialTheme = 'ocean' }: ThemeProviderProps) => {
+  const [theme, setThemeState] = useState<ThemeKey>(initialTheme);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
     const saved = localStorage.getItem('portfolio-theme') as ThemeKey;
     if (saved && colorThemes[saved]) {
       setThemeState(saved);
     }
   }, []);
 
-  const setTheme = (newTheme: ThemeKey) => {
+  const setTheme = async (newTheme: ThemeKey) => {
     setThemeState(newTheme);
     localStorage.setItem('portfolio-theme', newTheme);
+    
+    // Try to save to server if authenticated
+    try {
+      await fetch('/api/auth/theme', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ theme: newTheme })
+      });
+    } catch (e) {
+      // Ignore - just use local storage
+    }
   };
 
   const colors = colorThemes[theme];
+
+  // Prevent hydration mismatch
+  if (!mounted) {
+    return (
+      <ThemeContext.Provider value={{ theme: initialTheme, setTheme, colors: colorThemes[initialTheme] }}>
+        {children}
+      </ThemeContext.Provider>
+    );
+  }
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, colors }}>

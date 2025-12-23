@@ -1,20 +1,19 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import React, { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Mail, Lock, User, Upload, Eye, EyeOff, ArrowRight, 
-  Sparkles, CheckCircle, AlertCircle, FileText, Loader2
+  Mail, Lock, Eye, EyeOff, ArrowRight, 
+  Sparkles, CheckCircle, AlertCircle, Loader2, Shield
 } from 'lucide-react';
 import { useTheme, colorThemes, ThemeKey } from '@/app/context/Themecontext';
 
-const AuthPage = () => {
+const AuthContent = () => {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { colors, setTheme, theme } = useTheme();
-  const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [isSignUp, setIsSignUp] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -23,37 +22,9 @@ const AuthPage = () => {
   // Form fields
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
-  const [username, setUsername] = useState('');
-  const [resumeFile, setResumeFile] = useState<File | null>(null);
-  const [resumeUrl, setResumeUrl] = useState('');
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      if (file.type !== 'application/pdf') {
-        setError('Please upload a PDF file');
-        return;
-      }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        setError('File size must be less than 5MB');
-        return;
-      }
-      setResumeFile(file);
-      setError('');
-    }
-  };
-
-  const uploadResume = async (file: File): Promise<string> => {
-    // For now, we'll use a simple approach - in production, upload to S3/Cloudinary
-    // This is a placeholder that returns a data URL
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result as string);
-      reader.onerror = reject;
-      reader.readAsDataURL(file);
-    });
-  };
+  // Get redirect URL from query params
+  const redirectUrl = searchParams.get('redirect') || '/events';
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,39 +33,23 @@ const AuthPage = () => {
     setLoading(true);
 
     try {
-      let uploadedResumeUrl = resumeUrl;
-      
-      if (isSignUp && resumeFile) {
-        // Upload resume
-        uploadedResumeUrl = await uploadResume(resumeFile);
-      }
-
-      const endpoint = isSignUp ? '/api/auth/signup' : '/api/auth/signin';
-      const body = isSignUp 
-        ? { email, password, name, username, resumeUrl: uploadedResumeUrl }
-        : { email, password };
-
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/auth/signin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body)
+        body: JSON.stringify({ email, password })
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error || 'Something went wrong');
+        throw new Error(data.error || 'Failed to sign in');
       }
 
-      setSuccess(isSignUp ? 'Account created successfully!' : 'Welcome back!');
+      setSuccess('Welcome back, Admin!');
       
-      // Redirect based on profile completion
+      // Redirect to intended page or events
       setTimeout(() => {
-        if (data.user.profileComplete) {
-          router.push('/');
-        } else {
-          router.push('/setup');
-        }
+        router.push(redirectUrl);
       }, 1000);
 
     } catch (err: any) {
@@ -164,38 +119,20 @@ const AuthPage = () => {
               className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${colors.buttonGradient} mb-4`}
               whileHover={{ scale: 1.05, rotate: 5 }}
             >
-              <Sparkles className="text-white" size={32} />
+              <Shield className="text-white" size={32} />
             </motion.div>
             <h1 className={`text-3xl font-bold ${colors.gradientText} bg-clip-text text-transparent`}>
-              Portfolio Hub
+              Admin Access
             </h1>
             <p className="text-gray-400 mt-2">
-              {isSignUp ? 'Create your developer portfolio' : 'Welcome back!'}
+              Sign in to access dashboard
             </p>
           </div>
 
-          {/* Tab Switcher */}
-          <div className="flex bg-slate-800/50 rounded-xl p-1 mb-6">
-            <button
-              onClick={() => { setIsSignUp(true); setError(''); }}
-              className={`flex-1 py-2.5 rounded-lg font-medium transition-all ${
-                isSignUp 
-                  ? `${colors.buttonGradient} text-white` 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Sign Up
-            </button>
-            <button
-              onClick={() => { setIsSignUp(false); setError(''); }}
-              className={`flex-1 py-2.5 rounded-lg font-medium transition-all ${
-                !isSignUp 
-                  ? `${colors.buttonGradient} text-white` 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Sign In
-            </button>
+          {/* Admin Badge */}
+          <div className={`flex items-center justify-center gap-2 py-3 px-4 mb-6 rounded-xl bg-opacity-10 border ${colors.cardBorder}`} style={{ backgroundColor: `${colors.primary}15` }}>
+            <Sparkles size={16} className={colors.textAccent} />
+            <span className={`text-sm font-medium ${colors.textAccent}`}>Admin Only Access</span>
           </div>
 
           {/* Error/Success Messages */}
@@ -226,50 +163,6 @@ const AuthPage = () => {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            <AnimatePresence mode="wait">
-              {isSignUp && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4"
-                >
-                  {/* Name */}
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Full Name</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="John Doe"
-                        required={isSignUp}
-                        className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Username */}
-                  <div>
-                    <label className="block text-sm text-gray-400 mb-2">Username</label>
-                    <div className="relative">
-                      <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">@</span>
-                      <input
-                        type="text"
-                        value={username}
-                        onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
-                        placeholder="johndoe"
-                        required={isSignUp}
-                        className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
-                      />
-                    </div>
-                    <p className="text-xs text-gray-500 mt-1">Your portfolio URL: portfolio.app/{username || 'username'}</p>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
             {/* Email */}
             <div>
               <label className="block text-sm text-gray-400 mb-2">Email</label>
@@ -279,7 +172,7 @@ const AuthPage = () => {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="admin@example.com"
                   required
                   className="w-full bg-slate-800/50 border border-white/10 rounded-xl py-3 pl-12 pr-4 text-white placeholder-gray-500 focus:outline-none focus:border-white/30 transition-colors"
                 />
@@ -307,56 +200,7 @@ const AuthPage = () => {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
-              {isSignUp && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Min 8 chars, uppercase, lowercase, number, special char (!@#$%^&*)
-                </p>
-              )}
             </div>
-
-            {/* Resume Upload (Sign Up only) */}
-            <AnimatePresence>
-              {isSignUp && (
-                <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                >
-                  <label className="block text-sm text-gray-400 mb-2">Resume (Optional)</label>
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleFileChange}
-                    className="hidden"
-                  />
-                  <motion.button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`w-full py-4 border-2 border-dashed ${
-                      resumeFile ? 'border-green-500/50 bg-green-500/5' : 'border-white/10 hover:border-white/20'
-                    } rounded-xl transition-colors flex items-center justify-center gap-3`}
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                  >
-                    {resumeFile ? (
-                      <>
-                        <FileText className="text-green-400" size={20} />
-                        <span className="text-green-400">{resumeFile.name}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="text-gray-500" size={20} />
-                        <span className="text-gray-400">Upload PDF resume for auto-fill</span>
-                      </>
-                    )}
-                  </motion.button>
-                  <p className="text-xs text-gray-500 mt-1 text-center">
-                    We&apos;ll parse your resume to pre-fill your portfolio
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {/* Submit Button */}
             <motion.button
@@ -370,24 +214,38 @@ const AuthPage = () => {
                 <Loader2 className="animate-spin" size={20} />
               ) : (
                 <>
-                  {isSignUp ? 'Create Account' : 'Sign In'}
-                  <ArrowRight size={18} />
+                  Sign In <ArrowRight size={18} />
                 </>
               )}
             </motion.button>
           </form>
 
           {/* Footer */}
-          <p className="text-center text-gray-500 text-sm mt-6">
-            {isSignUp ? (
-              <>Already have an account? <button onClick={() => setIsSignUp(false)} className={`${colors.textAccent} hover:underline`}>Sign in</button></>
-            ) : (
-              <>Don&apos;t have an account? <button onClick={() => setIsSignUp(true)} className={`${colors.textAccent} hover:underline`}>Sign up</button></>
-            )}
-          </p>
+          <div className="mt-6 pt-6 border-t border-white/10">
+            <p className="text-center text-gray-500 text-sm">
+              <a href="/" className={`${colors.textAccent} hover:underline`}>← Back to Portfolio</a>
+            </p>
+          </div>
         </div>
+
+        {/* Info Text */}
+        <p className="text-center text-gray-600 text-xs mt-4">
+          This is a protected admin area. Unauthorized access is prohibited.
+        </p>
       </motion.div>
     </div>
+  );
+};
+
+const AuthPage = () => {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <Loader2 className="animate-spin text-cyan-400" size={32} />
+      </div>
+    }>
+      <AuthContent />
+    </Suspense>
   );
 };
 

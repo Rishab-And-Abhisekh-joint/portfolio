@@ -1,54 +1,38 @@
 // app/api/auth/session/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 
-// GET - Get current session
-export async function GET(request: NextRequest) {
-  try {
-    const user = await getCurrentUser();
+// Admin user info
+const ADMIN_USER = {
+  id: 1,
+  email: 'rishab.acharjee12345@gmail.com',
+  username: 'rishab_acharjee',
+  name: 'Rishab Acharjee',
+  profileComplete: true,
+  theme: 'ocean'
+};
 
-    if (!user) {
+export async function GET() {
+  try {
+    const cookieStore = await cookies();
+    const sessionToken = cookieStore.get('session_token')?.value;
+
+    if (!sessionToken) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
+    // Return admin user if authenticated
     return NextResponse.json({
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        name: user.name,
-        profileComplete: user.profileComplete,
-        theme: user.theme
-      }
+      user: ADMIN_USER
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Session error:', error);
     return NextResponse.json(
       { error: 'Failed to get session' },
-      { status: 500 }
-    );
-  }
-}
-
-// DELETE - Sign out (destroy session)
-export async function DELETE(request: NextRequest) {
-  try {
-    const cookieStore = await cookies();
-    
-    // Clear the session cookie
-    cookieStore.delete('session_token');
-
-    return NextResponse.json({ success: true });
-
-  } catch (error) {
-    console.error('Signout error:', error);
-    return NextResponse.json(
-      { error: 'Failed to sign out' },
       { status: 500 }
     );
   }

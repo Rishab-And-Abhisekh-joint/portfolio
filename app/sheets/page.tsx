@@ -1090,29 +1090,72 @@ const SheetsTracker = () => {
   }, []);
 
   useEffect(() => {
-    const savedCompleted = localStorage.getItem('dsa-progress');
-    const savedReview = localStorage.getItem('dsa-review');
-    if (savedCompleted) setCompleted(JSON.parse(savedCompleted));
-    if (savedReview) setReview(JSON.parse(savedReview));
+    const loadProgress = async () => {
+      try {
+        const res = await fetch('/api/sheets/progress');
+        if (res.ok) {
+          const data = await res.json();
+          setCompleted(data.completed || {});
+          setReview(data.review || {});
+        } else {
+          // Fallback to localStorage if not authenticated
+          const savedCompleted = localStorage.getItem('dsa-progress');
+          const savedReview = localStorage.getItem('dsa-review');
+          if (savedCompleted) setCompleted(JSON.parse(savedCompleted));
+          if (savedReview) setReview(JSON.parse(savedReview));
+        }
+      } catch {
+        const savedCompleted = localStorage.getItem('dsa-progress');
+        const savedReview = localStorage.getItem('dsa-review');
+        if (savedCompleted) setCompleted(JSON.parse(savedCompleted));
+        if (savedReview) setReview(JSON.parse(savedReview));
+      }
+    };
+    loadProgress();
   }, []);
 
-  const toggleStatus = (id: string, type: 'done' | 'review') => {
+  const toggleStatus = async (id: string, type: 'done' | 'review') => {
+    const newValue = type === 'done' ? !completed[id] : !review[id];
+    
+    // Update UI immediately
     if (type === 'done') {
-      const newState = { ...completed, [id]: !completed[id] };
+      const newState = { ...completed, [id]: newValue };
       setCompleted(newState);
       localStorage.setItem('dsa-progress', JSON.stringify(newState));
     } else {
-      const newState = { ...review, [id]: !review[id] };
+      const newState = { ...review, [id]: newValue };
       setReview(newState);
       localStorage.setItem('dsa-review', JSON.stringify(newState));
     }
+  
+    // Sync to database
+    try {
+      await fetch('/api/sheets/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId: id, type, value: newValue })
+      });
+    } catch (err) {
+      console.error('Failed to sync progress:', err);
+    }
   };
 
-  const handleImport = (questionIds: string[]) => {
+  const handleImport = async (questionIds: string[]) => {
     const newCompleted = { ...completed };
     questionIds.forEach(id => { newCompleted[id] = true; });
     setCompleted(newCompleted);
     localStorage.setItem('dsa-progress', JSON.stringify(newCompleted));
+  
+    // Sync to database
+    try {
+      await fetch('/api/sheets/progress', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionIds })
+      });
+    } catch (err) {
+      console.error('Failed to sync imported progress:', err);
+    }
   };
 
   const exportProgress = () => {

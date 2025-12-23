@@ -1,14 +1,21 @@
 // app/api/auth/signin/route.ts
-import { NextRequest, NextResponse } from 'next/server';
-import { signIn } from '@/lib/auth';
+import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
+import crypto from 'crypto';
 
-export async function POST(request: NextRequest) {
+// Admin credentials - hardcoded for portfolio
+const ADMIN_CREDENTIALS = {
+  email: 'rishab.acharjee12345@gmail.com',
+  password: '123@Rishab',
+  name: 'Rishab Acharjee',
+  username: 'rishab_acharjee'
+};
+
+export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const { email, password } = body;
+    const { email, password } = await request.json();
 
-    // Validate required fields
+    // Validate inputs
     if (!email || !password) {
       return NextResponse.json(
         { error: 'Email and password are required' },
@@ -16,8 +23,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Sign in user
-    const { user, sessionToken } = await signIn(email, password);
+    // Check against hardcoded admin credentials
+    if (email !== ADMIN_CREDENTIALS.email || password !== ADMIN_CREDENTIALS.password) {
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    // Generate a simple session token
+    const sessionToken = crypto.randomBytes(32).toString('hex');
 
     // Set session cookie
     const cookieStore = await cookies();
@@ -29,24 +44,32 @@ export async function POST(request: NextRequest) {
       path: '/'
     });
 
+    // Also set a non-httpOnly cookie for client-side checks
+    cookieStore.set('is_authenticated', 'true', {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 days
+      path: '/'
+    });
+
     return NextResponse.json({
       success: true,
-      user
+      user: {
+        id: 1,
+        email: ADMIN_CREDENTIALS.email,
+        username: ADMIN_CREDENTIALS.username,
+        name: ADMIN_CREDENTIALS.name,
+        profileComplete: true
+      }
     });
 
   } catch (error: any) {
     console.error('Signin error:', error);
-
-    if (error.message === 'Invalid email or password') {
-      return NextResponse.json(
-        { error: 'Invalid email or password' },
-        { status: 401 }
-      );
-    }
-
+    
     return NextResponse.json(
-      { error: 'Failed to sign in. Please try again.' },
-      { status: 500 }
+      { error: 'Sign in failed' },
+      { status: 401 }
     );
   }
 }
