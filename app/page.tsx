@@ -907,7 +907,11 @@ const projects = [
       "Action: Deployed SARIMAX time-series models for forecasting and Digital Twins for simulation. Implemented a multi-agent routing system using CrewAI and secured the hybrid PostgreSQL-Firestore DB with RBAC.", 
       "Result: Improved demand forecasting accuracy by 25%, reduced delivery delays by 20%, and remediated 3 critical security vulnerabilities."
     ], 
+<<<<<<< HEAD
     image: "projects/supply-chain.jpeg",
+=======
+    image: "projects/supply-chain.jpg",
+>>>>>>> b9bc83d81c84aa9abff241daa056e4ae82b91af1
     github: "https://github.com/Rishab-And-Abhisekh-joint/Supply-Chain",
     demo: "https://supply-chain-orcin.vercel.app",
     color: "from-cyan-500 to-blue-600" 
@@ -923,7 +927,11 @@ const projects = [
       "Action: Built the chatbot using LangChain and ChromaDB, integrating Arxiv and Wikipedia APIs. Engineered support for processing 50+ PDFs and YouTube links weekly.", 
       "Result: Enhanced retrieval efficiency by 60%, providing a streamlined tool for accessing and synthesizing complex technical data."
     ], 
+<<<<<<< HEAD
     image: "/projects/robot.jpeg",
+=======
+    image: "",
+>>>>>>> b9bc83d81c84aa9abff241daa056e4ae82b91af1
     github: "https://github.com/Rishab-And-Abhisekh-joint/Search_Engine_LLM",
     demo: "",
     color: "from-purple-500 to-pink-600" 
