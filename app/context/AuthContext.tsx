@@ -1,3 +1,4 @@
+// app/context/AuthContext.tsx
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
@@ -14,6 +15,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   checkAuth: () => Promise<void>;
 }
@@ -51,6 +53,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const signIn = async (email: string, password: string) => {
+    const response = await fetch('/api/auth/signin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || 'Sign in failed');
+    }
+
+    // Set the user from response
+    setUser(data.user);
+    
+    // Refresh auth state
+    await checkAuth();
+  };
+
   const signOut = async () => {
     try {
       await fetch('/api/auth/signout', { method: 'POST' });
@@ -69,7 +93,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     <AuthContext.Provider value={{ 
       user, 
       isAuthenticated: !!user, 
-      isLoading, 
+      isLoading,
+      signIn,
       signOut, 
       checkAuth 
     }}>
