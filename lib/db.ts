@@ -66,6 +66,14 @@ export async function transaction<T>(callback: (client: any) => Promise<T>): Pro
     client.release();
   }
 }
+// Add this function to your existing lib/db.ts
+
+export function isDatabaseConfigured(): boolean {
+  return !!(
+    process.env.DATABASE_URL || 
+    (process.env.PGHOST && process.env.PGDATABASE && process.env.PGUSER)
+  );
+}
 
 // Test database connection
 export async function testConnection(): Promise<boolean> {
