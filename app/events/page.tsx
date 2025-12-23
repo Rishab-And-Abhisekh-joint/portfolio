@@ -1040,7 +1040,7 @@ const EventsPage = () => {
       setSelectedPlatforms(availablePlatforms);
       
       console.log('Total contests loaded:', allContests.length);
-      console.log('Platforms:', [...availablePlatforms]);
+      console.log('Platforms:', Array.from(availablePlatforms));
       
       setContests(allContests);
       setLoading(false);
@@ -1078,7 +1078,7 @@ const EventsPage = () => {
   
   // Stats
   const registeredIds = new Set(registeredContests.keys());
-  const platforms = [...new Set(contests.map(c => c.site))];
+  const platforms = Array.from(new Set(contests.map(c => c.site)));
   const liveCount = contests.filter(c => isContestLive(c.start_time, c.end_time)).length;
   const upcomingCount = contests.filter(c => !isContestPast(c.end_time)).length;
   const actualRegisteredCount = registeredContests.size;
