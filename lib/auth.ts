@@ -13,15 +13,43 @@ export interface User {
 }
 // Add this function to lib/auth.ts
 
-export async function isAuthenticated(): Promise<boolean> {
+// Add this function to lib/auth.ts
+
+export async function isAuthenticated(request: Request): Promise<{ authenticated: boolean; user: User | null }> {
   try {
-    const user = await getCurrentUser();
-    return user !== null;
+    // Get session token from cookies in the request
+    const cookieHeader = request.headers.get('cookie');
+    
+    if (!cookieHeader) {
+      return { authenticated: false, user: null };
+    }
+
+    // Parse cookies to find session_token
+    const cookies = cookieHeader.split(';').reduce((acc, cookie) => {
+      const [key, value] = cookie.trim().split('=');
+      acc[key] = value;
+      return acc;
+    }, {} as Record<string, string>);
+
+    const sessionToken = cookies['session_token'];
+
+    if (!sessionToken) {
+      return { authenticated: false, user: null };
+    }
+
+    const sessionData = await getSession(sessionToken);
+    
+    if (!sessionData) {
+      return { authenticated: false, user: null };
+    }
+
+    return { authenticated: true, user: sessionData.user };
   } catch (error) {
     console.error('Error checking authentication:', error);
-    return false;
+    return { authenticated: false, user: null };
   }
 }
+
 export async function getCurrentUser(): Promise<User | null> {
   try {
     const cookieStore = await cookies();
