@@ -2036,8 +2036,8 @@ const ContactSection: React.FC = () => {
   );
 };
 
-const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; handles: any; setHandles: any; currentTheme: ThemeKey; setCurrentTheme: (t: ThemeKey) => void }> = ({ isOpen, onClose, handles, setHandles, currentTheme, setCurrentTheme }) => {
-  const { colors } = useTheme();
+const SettingsModal: React.FC<{ isOpen: boolean; onClose: () => void; handles: any; setHandles: any }> = ({ isOpen, onClose, handles, setHandles }) => {
+  const { theme: currentTheme, setTheme: setCurrentTheme, colors } = useTheme();
   const [local, setLocal] = useState(handles);
   
   useEffect(() => { setLocal(handles); }, [handles]);
@@ -2166,7 +2166,7 @@ const Footer: React.FC = () => {
 export default function Portfolio() {
   const [activeSection, setActiveSection] = useState('hero');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState<ThemeKey>('ocean');
+  const { theme: currentTheme, setTheme: handleThemeChange, colors } = useTheme();
   const [handles, setHandles] = useState({ leetcode: "Rishab_Acharjee", codeforces: "rishab.acharjee12345", codechef: "rishabacharjee" });
   const [leetcodeData, setLeetcodeData] = useState<any>(null);
   const [leetcodeCalendar, setLeetcodeCalendar] = useState<string>("{}");
@@ -2178,15 +2178,15 @@ export default function Portfolio() {
   // Initialize smooth scroll
   useSmoothScroll();
 
-  useEffect(() => {
-    const saved = localStorage.getItem('portfolio-theme') as ThemeKey;
-    if (saved && colorThemes[saved]) setCurrentTheme(saved);
-  }, []);
+  // useEffect(() => {
+  //   const saved = localStorage.getItem('portfolio-theme') as ThemeKey;
+  //   if (saved && colorThemes[saved]) setCurrentTheme(saved);
+  // }, []);
 
-  const handleThemeChange = (t: ThemeKey) => { 
-    setCurrentTheme(t); 
-    localStorage.setItem('portfolio-theme', t); 
-  };
+  // const handleThemeChange = (t: ThemeKey) => { 
+  //   setCurrentTheme(t); 
+  //   localStorage.setItem('portfolio-theme', t); 
+  // };
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -2284,12 +2284,11 @@ export default function Portfolio() {
     }; 
   }, []);
 
-  const colors = colorThemes[currentTheme];
+  // const colors = colorThemes[currentTheme];
   const uniqueCf = cfSubmissions?.length > 0 ? new Set(cfSubmissions.filter((sub: any) => sub.verdict === "OK").map((sub: any) => `${sub.problem.contestId}-${sub.problem.index}`)).size : 0;
   const totalProblems = (leetcodeData?.totalSolved || 0) + uniqueCf;
 
   return (
-    <ThemeProvider initialTheme={currentTheme}>
       <div className="min-h-screen bg-slate-950 text-white overflow-x-hidden">
         <div className="fixed inset-0 z-0">
           <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] ${colors.gradientBg} via-slate-950 to-slate-950`} />
@@ -2305,7 +2304,7 @@ export default function Portfolio() {
           >
             <Settings size={24} />
           </motion.button>
-          <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} handles={handles} setHandles={setHandles} currentTheme={currentTheme} setCurrentTheme={handleThemeChange} />
+          <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} handles={handles} setHandles={setHandles} />
           <Navbar activeSection={activeSection} />
           <HeroSection />
           <AboutSection totalProblems={totalProblems} />
@@ -2319,6 +2318,5 @@ export default function Portfolio() {
           <Footer />
         </div>
       </div>
-      </ThemeProvider>
   );
 }
