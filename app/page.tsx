@@ -1,5 +1,5 @@
 'use client';
-
+import { ThemeProvider, useTheme, colorThemes, ThemeKey, ThemeColors } from './context/Themecontext';
 import React, { useState, useEffect, useRef, Suspense, createContext, useContext, useCallback } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Sphere, MeshDistortMaterial, Float, Stars } from '@react-three/drei';
@@ -87,87 +87,87 @@ const easings = {
 // COLOR THEME SYSTEM
 // ============================================
 
-const colorThemes = {
-  ocean: {
-    name: "Ocean",
-    primary: "#06b6d4",
-    secondary: "#8b5cf6",
-    tertiary: "#3b82f6",
-    accent: "#00f5ff",
-    gradientFrom: "from-cyan-400",
-    gradientVia: "via-blue-500",
-    gradientTo: "to-purple-600",
-    gradientText: "bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600",
-    gradientBg: "from-cyan-900/20",
-    sphereColors: ["#00f5ff", "#8b5cf6", "#06b6d4"],
-    particleColor: "#00f5ff",
-    glowColor: "cyan",
-    buttonGradient: "bg-gradient-to-r from-cyan-500 to-blue-600",
-    cardBorder: "border-cyan-500/20",
-    hoverColor: "hover:text-cyan-400",
-    textAccent: "text-cyan-400",
-    bgAccent: "bg-cyan-500",
-    ringColor: "ring-cyan-500",
-  },
-  sunset: {
-    name: "Sunset",
-    primary: "#f97316",
-    secondary: "#ec4899",
-    tertiary: "#ef4444",
-    accent: "#ff6b35",
-    gradientFrom: "from-orange-400",
-    gradientVia: "via-pink-500",
-    gradientTo: "to-red-600",
-    gradientText: "bg-gradient-to-r from-orange-400 via-pink-500 to-red-600",
-    gradientBg: "from-orange-900/20",
-    sphereColors: ["#ff6b35", "#ec4899", "#f97316"],
-    particleColor: "#ff6b35",
-    glowColor: "orange",
-    buttonGradient: "bg-gradient-to-r from-orange-500 to-pink-600",
-    cardBorder: "border-orange-500/20",
-    hoverColor: "hover:text-orange-400",
-    textAccent: "text-orange-400",
-    bgAccent: "bg-orange-500",
-    ringColor: "ring-orange-500",
-  },
-  forest: {
-    name: "Forest",
-    primary: "#22c55e",
-    secondary: "#14b8a6",
-    tertiary: "#10b981",
-    accent: "#00ff88",
-    gradientFrom: "from-green-400",
-    gradientVia: "via-emerald-500",
-    gradientTo: "to-teal-600",
-    gradientText: "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600",
-    gradientBg: "from-green-900/20",
-    sphereColors: ["#00ff88", "#14b8a6", "#22c55e"],
-    particleColor: "#00ff88",
-    glowColor: "green",
-    buttonGradient: "bg-gradient-to-r from-green-500 to-teal-600",
-    cardBorder: "border-green-500/20",
-    hoverColor: "hover:text-green-400",
-    textAccent: "text-green-400",
-    bgAccent: "bg-green-500",
-    ringColor: "ring-green-500",
-  }
-};
+// const colorThemes = {
+//   ocean: {
+//     name: "Ocean",
+//     primary: "#06b6d4",
+//     secondary: "#8b5cf6",
+//     tertiary: "#3b82f6",
+//     accent: "#00f5ff",
+//     gradientFrom: "from-cyan-400",
+//     gradientVia: "via-blue-500",
+//     gradientTo: "to-purple-600",
+//     gradientText: "bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600",
+//     gradientBg: "from-cyan-900/20",
+//     sphereColors: ["#00f5ff", "#8b5cf6", "#06b6d4"],
+//     particleColor: "#00f5ff",
+//     glowColor: "cyan",
+//     buttonGradient: "bg-gradient-to-r from-cyan-500 to-blue-600",
+//     cardBorder: "border-cyan-500/20",
+//     hoverColor: "hover:text-cyan-400",
+//     textAccent: "text-cyan-400",
+//     bgAccent: "bg-cyan-500",
+//     ringColor: "ring-cyan-500",
+//   },
+//   sunset: {
+//     name: "Sunset",
+//     primary: "#f97316",
+//     secondary: "#ec4899",
+//     tertiary: "#ef4444",
+//     accent: "#ff6b35",
+//     gradientFrom: "from-orange-400",
+//     gradientVia: "via-pink-500",
+//     gradientTo: "to-red-600",
+//     gradientText: "bg-gradient-to-r from-orange-400 via-pink-500 to-red-600",
+//     gradientBg: "from-orange-900/20",
+//     sphereColors: ["#ff6b35", "#ec4899", "#f97316"],
+//     particleColor: "#ff6b35",
+//     glowColor: "orange",
+//     buttonGradient: "bg-gradient-to-r from-orange-500 to-pink-600",
+//     cardBorder: "border-orange-500/20",
+//     hoverColor: "hover:text-orange-400",
+//     textAccent: "text-orange-400",
+//     bgAccent: "bg-orange-500",
+//     ringColor: "ring-orange-500",
+//   },
+//   forest: {
+//     name: "Forest",
+//     primary: "#22c55e",
+//     secondary: "#14b8a6",
+//     tertiary: "#10b981",
+//     accent: "#00ff88",
+//     gradientFrom: "from-green-400",
+//     gradientVia: "via-emerald-500",
+//     gradientTo: "to-teal-600",
+//     gradientText: "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600",
+//     gradientBg: "from-green-900/20",
+//     sphereColors: ["#00ff88", "#14b8a6", "#22c55e"],
+//     particleColor: "#00ff88",
+//     glowColor: "green",
+//     buttonGradient: "bg-gradient-to-r from-green-500 to-teal-600",
+//     cardBorder: "border-green-500/20",
+//     hoverColor: "hover:text-green-400",
+//     textAccent: "text-green-400",
+//     bgAccent: "bg-green-500",
+//     ringColor: "ring-green-500",
+//   }
+// };
 
-type ThemeKey = keyof typeof colorThemes;
+// type ThemeKey = keyof typeof colorThemes;
 
-interface ThemeContextType {
-  theme: ThemeKey;
-  setTheme: (theme: ThemeKey) => void;
-  colors: typeof colorThemes.ocean;
-}
+// interface ThemeContextType {
+//   theme: ThemeKey;
+//   setTheme: (theme: ThemeKey) => void;
+//   colors: typeof colorThemes.ocean;
+// }
 
-const ThemeContext = createContext<ThemeContextType>({
-  theme: 'ocean',
-  setTheme: () => {},
-  colors: colorThemes.ocean
-});
+// const ThemeContext = createContext<ThemeContextType>({
+//   theme: 'ocean',
+//   setTheme: () => {},
+//   colors: colorThemes.ocean
+// });
 
-const useTheme = () => useContext(ThemeContext);
+// const useTheme = () => useContext(ThemeContext);
 
 // ============================================
 // API FETCHING - REAL TIME DATA ONLY
@@ -1184,7 +1184,7 @@ const HeroSection: React.FC = () => {
               Get In Touch <Send size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
             </motion.a>
             <motion.a 
-              href="/resume.pdf" 
+              href="/Resume.pdf" 
               download="Rishab_Acharjee_Resume.pdf" 
               className={`group px-8 py-4 ${colors.buttonGradient} rounded-xl text-white font-semibold flex items-center gap-2 shadow-xl`} 
               whileHover={{ scale: 1.05, boxShadow: `0 0 40px ${colors.primary}80` }} 
@@ -1578,7 +1578,7 @@ const ExperienceSection: React.FC = () => {
                             <span className={`px-3 py-1 rounded-full ${experiences[activeExp].type === 'Current' ? 'bg-green-500/20 text-green-400' : experiences[activeExp].type === 'Upcoming' ? `${colors.bgAccent}/20 ${colors.textAccent}` : 'bg-gray-500/20 text-gray-400'}`}>{experiences[activeExp].type}</span>
                           </div>
                           {experiences[activeExp].certificationLink && (
-                            <a href={experiences[activeExp].certificationLink} target="_blank" rel="noopener noreferrer" className={`flex items-center gap-2 text-xs font-semibold ${colors.textAccent} hover:opacity-80 transition-opacity duration-300`}>
+                            <a href={experiences[activeExp].certificationLink} target="_blank" rel="noopener noreferrer" className={`relative z-50 flex items-center gap-2 text-xs font-semibold ${colors.textAccent} hover:opacity-80 transition-opacity duration-300 cursor-pointer`}>
                               <FileText size={14} />View Certificate
                             </a>
                           )}
@@ -2289,7 +2289,7 @@ export default function Portfolio() {
   const totalProblems = (leetcodeData?.totalSolved || 0) + uniqueCf;
 
   return (
-    <ThemeContext.Provider value={{ theme: currentTheme, setTheme: handleThemeChange, colors }}>
+    <ThemeProvider initialTheme={currentTheme}>
       <div className="min-h-screen bg-slate-950 text-white overflow-x-hidden">
         <div className="fixed inset-0 z-0">
           <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] ${colors.gradientBg} via-slate-950 to-slate-950`} />
@@ -2319,6 +2319,6 @@ export default function Portfolio() {
           <Footer />
         </div>
       </div>
-    </ThemeContext.Provider>
+      </ThemeProvider>
   );
 }
