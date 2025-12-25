@@ -1,5 +1,5 @@
 'use client';
-
+import { useTheme, colorThemes, ThemeKey } from '../context/Themecontext';
 import React, { useState, useEffect, createContext, useContext, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
@@ -10,51 +10,51 @@ import {
 } from 'lucide-react';
 
 // Theme system (same as before)
-const colorThemes = {
-  ocean: {
-    name: "Ocean", primary: "#06b6d4",
-    gradientText: "bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600",
-    gradientBg: "from-cyan-900/20",
-    buttonGradient: "bg-gradient-to-r from-cyan-500 to-blue-600",
-    cardBorder: "border-cyan-500/20",
-    hoverColor: "hover:text-cyan-400",
-    textAccent: "text-cyan-400",
-    bgAccent: "bg-cyan-500",
-    bgAccentMuted: "bg-cyan-500/10",
-    borderAccent: "border-cyan-500/30",
-    progressBar: "from-cyan-400 to-blue-500",
-  },
-  sunset: {
-    name: "Sunset", primary: "#f97316",
-    gradientText: "bg-gradient-to-r from-orange-400 via-pink-500 to-red-600",
-    gradientBg: "from-orange-900/20",
-    buttonGradient: "bg-gradient-to-r from-orange-500 to-pink-600",
-    cardBorder: "border-orange-500/20",
-    hoverColor: "hover:text-orange-400",
-    textAccent: "text-orange-400",
-    bgAccent: "bg-orange-500",
-    bgAccentMuted: "bg-orange-500/10",
-    borderAccent: "border-orange-500/30",
-    progressBar: "from-orange-400 to-pink-500",
-  },
-  forest: {
-    name: "Forest", primary: "#22c55e",
-    gradientText: "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600",
-    gradientBg: "from-green-900/20",
-    buttonGradient: "bg-gradient-to-r from-green-500 to-teal-600",
-    cardBorder: "border-green-500/20",
-    hoverColor: "hover:text-green-400",
-    textAccent: "text-green-400",
-    bgAccent: "bg-green-500",
-    bgAccentMuted: "bg-green-500/10",
-    borderAccent: "border-green-500/30",
-    progressBar: "from-green-400 to-teal-500",
-  }
-};
+// const colorThemes = {
+//   ocean: {
+//     name: "Ocean", primary: "#06b6d4",
+//     gradientText: "bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600",
+//     gradientBg: "from-cyan-900/20",
+//     buttonGradient: "bg-gradient-to-r from-cyan-500 to-blue-600",
+//     cardBorder: "border-cyan-500/20",
+//     hoverColor: "hover:text-cyan-400",
+//     textAccent: "text-cyan-400",
+//     bgAccent: "bg-cyan-500",
+//     bgAccentMuted: "bg-cyan-500/10",
+//     borderAccent: "border-cyan-500/30",
+//     progressBar: "from-cyan-400 to-blue-500",
+//   },
+//   sunset: {
+//     name: "Sunset", primary: "#f97316",
+//     gradientText: "bg-gradient-to-r from-orange-400 via-pink-500 to-red-600",
+//     gradientBg: "from-orange-900/20",
+//     buttonGradient: "bg-gradient-to-r from-orange-500 to-pink-600",
+//     cardBorder: "border-orange-500/20",
+//     hoverColor: "hover:text-orange-400",
+//     textAccent: "text-orange-400",
+//     bgAccent: "bg-orange-500",
+//     bgAccentMuted: "bg-orange-500/10",
+//     borderAccent: "border-orange-500/30",
+//     progressBar: "from-orange-400 to-pink-500",
+//   },
+//   forest: {
+//     name: "Forest", primary: "#22c55e",
+//     gradientText: "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600",
+//     gradientBg: "from-green-900/20",
+//     buttonGradient: "bg-gradient-to-r from-green-500 to-teal-600",
+//     cardBorder: "border-green-500/20",
+//     hoverColor: "hover:text-green-400",
+//     textAccent: "text-green-400",
+//     bgAccent: "bg-green-500",
+//     bgAccentMuted: "bg-green-500/10",
+//     borderAccent: "border-green-500/30",
+//     progressBar: "from-green-400 to-teal-500",
+//   }
+// };
 
-type ThemeKey = keyof typeof colorThemes;
-const ThemeContext = createContext<{ theme: ThemeKey; colors: typeof colorThemes.ocean }>({ theme: 'ocean', colors: colorThemes.ocean });
-const useTheme = () => useContext(ThemeContext);
+// type ThemeKey = keyof typeof colorThemes;
+// const ThemeContext = createContext<{ theme: ThemeKey; colors: typeof colorThemes.ocean }>({ theme: 'ocean', colors: colorThemes.ocean });
+// const useTheme = () => useContext(ThemeContext);
 
 interface Question { id: string; title: string; difficulty: 'Easy' | 'Medium' | 'Hard'; link: string; topic: string; }
 interface Topic { name: string; questions: Question[]; }
@@ -1170,7 +1170,7 @@ const SHEETS_DATA: Sheet[] = [
 // ============================================
 
 const SheetsTracker = () => {
-  const [theme, setTheme] = useState<ThemeKey>('ocean');
+  const { theme, colors } = useTheme();
   const [activeSheetId, setActiveSheetId] = useState(SHEETS_DATA[0].id);
   const [completed, setCompleted] = useState<Record<string, boolean>>({});
   const [review, setReview] = useState<Record<string, boolean>>({});
@@ -1178,12 +1178,12 @@ const SheetsTracker = () => {
   const [filterDifficulty, setFilterDifficulty] = useState('All');
   const [showImportModal, setShowImportModal] = useState(false);
 
-  const colors = colorThemes[theme];
+  // const colors = colorThemes[theme];
 
-  useEffect(() => {
-    const saved = localStorage.getItem('portfolio-theme') as ThemeKey;
-    if (saved && colorThemes[saved]) setTheme(saved);
-  }, []);
+  // useEffect(() => {
+  //   const saved = localStorage.getItem('portfolio-theme') as ThemeKey;
+  //   if (saved && colorThemes[saved]) setTheme(saved);
+  // }, []);
 
   useEffect(() => {
     const loadProgress = async () => {
@@ -1269,7 +1269,6 @@ const SheetsTracker = () => {
   const activeSheet = SHEETS_DATA.find(s => s.id === activeSheetId) || SHEETS_DATA[0];
 
   return (
-    <ThemeContext.Provider value={{ theme, colors }}>
       <div className="min-h-screen bg-slate-950">
         <div className="fixed inset-0 z-0">
           <div className={`absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] ${colors.gradientBg} via-slate-950 to-slate-950`} />
@@ -1341,7 +1340,6 @@ const SheetsTracker = () => {
         {/* Import Modal */}
         <ImportModal isOpen={showImportModal} onClose={() => setShowImportModal(false)} sheet={activeSheet} onImport={handleImport} />
       </div>
-    </ThemeContext.Provider>
   );
 };
 

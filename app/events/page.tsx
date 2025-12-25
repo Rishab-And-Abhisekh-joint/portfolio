@@ -1,5 +1,5 @@
 'use client';
-
+import { useTheme, colorThemes, ThemeKey } from '../context/Themecontext';
 import React, { useState, useEffect, createContext, useContext, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -18,87 +18,87 @@ import {
 // SHARED COLOR THEME SYSTEM
 // ============================================
 
-const colorThemes = {
-  ocean: {
-    name: "Ocean",
-    primary: "#06b6d4",
-    secondary: "#8b5cf6",
-    tertiary: "#3b82f6",
-    accent: "#00f5ff",
-    gradientFrom: "from-cyan-400",
-    gradientVia: "via-blue-500",
-    gradientTo: "to-purple-600",
-    gradientText: "bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600",
-    gradientBg: "from-cyan-900/20",
-    buttonGradient: "bg-gradient-to-r from-cyan-500 to-blue-600",
-    cardBorder: "border-cyan-500/20",
-    hoverColor: "hover:text-cyan-400",
-    textAccent: "text-cyan-400",
-    bgAccent: "bg-cyan-500",
-    ringColor: "ring-cyan-500",
-    borderAccent: "border-cyan-500/30",
-    bgAccentMuted: "bg-cyan-500/10",
-    bgAccentStrong: "bg-cyan-500/20",
-  },
-  sunset: {
-    name: "Sunset",
-    primary: "#f97316",
-    secondary: "#ec4899",
-    tertiary: "#ef4444",
-    accent: "#ff6b35",
-    gradientFrom: "from-orange-400",
-    gradientVia: "via-pink-500",
-    gradientTo: "to-red-600",
-    gradientText: "bg-gradient-to-r from-orange-400 via-pink-500 to-red-600",
-    gradientBg: "from-orange-900/20",
-    buttonGradient: "bg-gradient-to-r from-orange-500 to-pink-600",
-    cardBorder: "border-orange-500/20",
-    hoverColor: "hover:text-orange-400",
-    textAccent: "text-orange-400",
-    bgAccent: "bg-orange-500",
-    ringColor: "ring-orange-500",
-    borderAccent: "border-orange-500/30",
-    bgAccentMuted: "bg-orange-500/10",
-    bgAccentStrong: "bg-orange-500/20",
-  },
-  forest: {
-    name: "Forest",
-    primary: "#22c55e",
-    secondary: "#14b8a6",
-    tertiary: "#10b981",
-    accent: "#00ff88",
-    gradientFrom: "from-green-400",
-    gradientVia: "via-emerald-500",
-    gradientTo: "to-teal-600",
-    gradientText: "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600",
-    gradientBg: "from-green-900/20",
-    buttonGradient: "bg-gradient-to-r from-green-500 to-teal-600",
-    cardBorder: "border-green-500/20",
-    hoverColor: "hover:text-green-400",
-    textAccent: "text-green-400",
-    bgAccent: "bg-green-500",
-    ringColor: "ring-green-500",
-    borderAccent: "border-green-500/30",
-    bgAccentMuted: "bg-green-500/10",
-    bgAccentStrong: "bg-green-500/20",
-  }
-};
+// const colorThemes = {
+//   ocean: {
+//     name: "Ocean",
+//     primary: "#06b6d4",
+//     secondary: "#8b5cf6",
+//     tertiary: "#3b82f6",
+//     accent: "#00f5ff",
+//     gradientFrom: "from-cyan-400",
+//     gradientVia: "via-blue-500",
+//     gradientTo: "to-purple-600",
+//     gradientText: "bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600",
+//     gradientBg: "from-cyan-900/20",
+//     buttonGradient: "bg-gradient-to-r from-cyan-500 to-blue-600",
+//     cardBorder: "border-cyan-500/20",
+//     hoverColor: "hover:text-cyan-400",
+//     textAccent: "text-cyan-400",
+//     bgAccent: "bg-cyan-500",
+//     ringColor: "ring-cyan-500",
+//     borderAccent: "border-cyan-500/30",
+//     bgAccentMuted: "bg-cyan-500/10",
+//     bgAccentStrong: "bg-cyan-500/20",
+//   },
+//   sunset: {
+//     name: "Sunset",
+//     primary: "#f97316",
+//     secondary: "#ec4899",
+//     tertiary: "#ef4444",
+//     accent: "#ff6b35",
+//     gradientFrom: "from-orange-400",
+//     gradientVia: "via-pink-500",
+//     gradientTo: "to-red-600",
+//     gradientText: "bg-gradient-to-r from-orange-400 via-pink-500 to-red-600",
+//     gradientBg: "from-orange-900/20",
+//     buttonGradient: "bg-gradient-to-r from-orange-500 to-pink-600",
+//     cardBorder: "border-orange-500/20",
+//     hoverColor: "hover:text-orange-400",
+//     textAccent: "text-orange-400",
+//     bgAccent: "bg-orange-500",
+//     ringColor: "ring-orange-500",
+//     borderAccent: "border-orange-500/30",
+//     bgAccentMuted: "bg-orange-500/10",
+//     bgAccentStrong: "bg-orange-500/20",
+//   },
+//   forest: {
+//     name: "Forest",
+//     primary: "#22c55e",
+//     secondary: "#14b8a6",
+//     tertiary: "#10b981",
+//     accent: "#00ff88",
+//     gradientFrom: "from-green-400",
+//     gradientVia: "via-emerald-500",
+//     gradientTo: "to-teal-600",
+//     gradientText: "bg-gradient-to-r from-green-400 via-emerald-500 to-teal-600",
+//     gradientBg: "from-green-900/20",
+//     buttonGradient: "bg-gradient-to-r from-green-500 to-teal-600",
+//     cardBorder: "border-green-500/20",
+//     hoverColor: "hover:text-green-400",
+//     textAccent: "text-green-400",
+//     bgAccent: "bg-green-500",
+//     ringColor: "ring-green-500",
+//     borderAccent: "border-green-500/30",
+//     bgAccentMuted: "bg-green-500/10",
+//     bgAccentStrong: "bg-green-500/20",
+//   }
+// };
 
-type ThemeKey = keyof typeof colorThemes;
+// type ThemeKey = keyof typeof colorThemes;
 
-interface ThemeContextType {
-  theme: ThemeKey;
-  setTheme: (theme: ThemeKey) => void;
-  colors: typeof colorThemes.ocean;
-}
+// interface ThemeContextType {
+//   theme: ThemeKey;
+//   setTheme: (theme: ThemeKey) => void;
+//   colors: typeof colorThemes.ocean;
+// }
 
-const ThemeContext = createContext<ThemeContextType>({
-  theme: 'ocean',
-  setTheme: () => {},
-  colors: colorThemes.ocean
-});
+// const ThemeContext = createContext<ThemeContextType>({
+//   theme: 'ocean',
+//   setTheme: () => {},
+//   colors: colorThemes.ocean
+// });
 
-const useTheme = () => useContext(ThemeContext);
+// const useTheme = () => useContext(ThemeContext);
 
 // ============================================
 // TYPES & DATA
@@ -665,7 +665,7 @@ const FilterBar = ({
 // ============================================
 
 const EventsPage = () => {
-  const [theme, setTheme] = useState<ThemeKey>('ocean');
+  const { theme, colors } = useTheme();
   const [contests, setContests] = useState<Contest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -678,15 +678,15 @@ const EventsPage = () => {
   const [showRegModal, setShowRegModal] = useState(false);
   const [pendingContest, setPendingContest] = useState<Contest | null>(null);
 
-  const colors = colorThemes[theme];
+  // const colors = colorThemes[theme];
 
   // Load theme from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem('portfolio-theme') as ThemeKey;
-    if (saved && colorThemes[saved]) {
-      setTheme(saved);
-    }
-  }, []);
+  // useEffect(() => {
+  //   const saved = localStorage.getItem('portfolio-theme') as ThemeKey;
+  //   if (saved && colorThemes[saved]) {
+  //     setTheme(saved);
+  //   }
+  // }, []);
 
   // Load registered contests from localStorage
   useEffect(() => {
@@ -887,7 +887,6 @@ const EventsPage = () => {
   const actualRegisteredCount = registeredContests.size;
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, colors }}>
       <div className="min-h-screen bg-slate-950">
         {/* Background */}
         <div className="fixed inset-0 z-0">
@@ -1106,7 +1105,6 @@ const EventsPage = () => {
           }
         `}</style>
       </div>
-    </ThemeContext.Provider>
   );
 };
 
