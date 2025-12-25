@@ -236,6 +236,7 @@ const fetchLeetCodeData = async (username: string) => {
 const fetchLeetCodeCalendar = async (username: string) => {
   const calendarEndpoints = [
     `https://alfa-leetcode-api.onrender.com/${username}/calendar`,
+    `https://leetcode-api-faisalshohag.vercel.app/${username}`,
     `https://alfa-leetcode-api.onrender.com/userProfile/${username}`
   ];
 
@@ -245,22 +246,30 @@ const fetchLeetCodeCalendar = async (username: string) => {
       if (!response.ok) continue;
       const data = await response.json();
       
+      // Handle direct calendar response
       if (data.submissionCalendar) {
         const calendar = typeof data.submissionCalendar === 'string' 
           ? data.submissionCalendar 
           : JSON.stringify(data.submissionCalendar);
-        if (calendar !== '{}' && calendar !== '""') {
+        if (calendar !== '{}' && calendar !== '""' && calendar.length > 5) {
           return calendar;
         }
       }
       
+      // Handle nested data structure
+      if (data.data?.matchedUser?.submissionCalendar) {
+        return data.data.matchedUser.submissionCalendar;
+      }
+      
+      // Handle direct object with timestamps
       if (typeof data === 'object' && !data.error) {
-        const keys = Object.keys(data).filter(k => /^\d+$/.test(k));
+        const keys = Object.keys(data).filter(k => /^\d{10}$/.test(k));
         if (keys.length > 0) {
           return JSON.stringify(data);
         }
       }
     } catch (error: any) {
+      console.log(`Calendar fetch failed for ${url}:`, error.message);
       continue;
     }
   }
@@ -526,24 +535,40 @@ const ActivityHeatmap = ({
       const oneYearAgo = new Date();
       oneYearAgo.setFullYear(today.getFullYear() - 1);
       oneYearAgo.setDate(oneYearAgo.getDate() - oneYearAgo.getDay());
-
+  
       const dates: Date[] = [];
       for (let d = new Date(oneYearAgo); d <= today; d.setDate(d.getDate() + 1)) {
         dates.push(new Date(d));
       }
-
+  
+      // Parse LeetCode calendar with better error handling
       let lcCalendar: Record<string, number> = {};
       if (leetcodeCalendar && leetcodeCalendar !== '{}' && leetcodeCalendar !== '""') {
         try {
-          const parsed = JSON.parse(leetcodeCalendar);
+          // Remove any extra quotes if string is double-encoded
+          let cleanedCalendar = leetcodeCalendar;
+          if (cleanedCalendar.startsWith('"') && cleanedCalendar.endsWith('"')) {
+            cleanedCalendar = cleanedCalendar.slice(1, -1).replace(/\\"/g, '"');
+          }
+          
+          const parsed = JSON.parse(cleanedCalendar);
           if (typeof parsed === 'object' && parsed !== null) {
             lcCalendar = parsed;
+            console.log("LeetCode calendar loaded:", Object.keys(lcCalendar).length, "entries");
           }
         } catch (e) {
-          console.log("Calendar parse fallback");
+          console.log("Calendar parse error, trying alternative parse:", e);
+          // Try parsing as escaped JSON
+          try {
+            const unescaped = leetcodeCalendar.replace(/\\/g, '');
+            lcCalendar = JSON.parse(unescaped);
+          } catch (e2) {
+            console.log("Alternative parse also failed");
+          }
         }
       }
-
+  
+      // Parse Codeforces submissions
       const cfDateMap: Record<string, number> = {};
       if (cfSubmissions && cfSubmissions.length > 0) {
         cfSubmissions.forEach((sub: any) => {
@@ -554,26 +579,28 @@ const ActivityHeatmap = ({
           }
         });
       }
-
+  
+      // Build the heatmap data
       const allDays = dates.map((date) => {
         let count = 0;
         const dateKey = date.toDateString();
-        const dateStr = date.toISOString().split('T')[0];
+        const startOfDay = Math.floor(new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime() / 1000);
+        const endOfDay = startOfDay + 86400; // 24 hours in seconds
         
+        // Check LeetCode calendar - timestamps are Unix timestamps (seconds)
         Object.keys(lcCalendar).forEach(key => {
           const timestamp = parseInt(key);
-          if (!isNaN(timestamp)) {
-            const submissionDate = new Date(timestamp * 1000);
-            if (submissionDate.toDateString() === dateKey) {
-              count += lcCalendar[key];
-            }
+          if (!isNaN(timestamp) && timestamp >= startOfDay && timestamp < endOfDay) {
+            count += lcCalendar[key];
           }
         });
         
+        // Add Codeforces submissions
         if (cfDateMap[dateKey]) {
           count += cfDateMap[dateKey];
         }
-
+  
+        // Add estimated CodeChef activity
         if (codechefData && codechefData.totalSolved > 0) {
           const seed = (date.getDate() + date.getMonth() * 31) % 10;
           const ccProblemsPerDay = codechefData.totalSolved / 365;
@@ -582,9 +609,9 @@ const ActivityHeatmap = ({
           }
         }
         
-        return { count, date: dateStr };
+        return { count, date: date.toISOString().split('T')[0] };
       });
-
+  
       const weekGroups: { count: number; date: string }[][] = [];
       for (let i = 0; i < allDays.length; i += 7) {
         weekGroups.push(allDays.slice(i, i + 7));
@@ -592,7 +619,7 @@ const ActivityHeatmap = ({
       
       setWeeks(weekGroups);
     } catch (e) {
-      console.error("Error parsing calendar:", e);
+      console.error("Error building heatmap:", e);
     }
   }, [leetcodeCalendar, cfSubmissions, codechefData]);
 
@@ -2196,13 +2223,13 @@ export default function Portfolio() {
         if (lcData && lcData.totalSolved > 0) { 
           setLeetcodeData(lcData); 
           lcSuccess = true;
-          if (lcData.submissionCalendar && lcData.submissionCalendar !== '{}') {
-            setLeetcodeCalendar(lcData.submissionCalendar);
-          }
+          console.log("LeetCode data loaded:", lcData.totalSolved, "problems");
         }
+        
         const calendarData = await fetchLeetCodeCalendar(handles.leetcode);
         if (calendarData && calendarData !== '{}') {
           setLeetcodeCalendar(calendarData);
+          console.log("LeetCode calendar loaded, length:", calendarData.length);
         }
       }
       if (handles.codeforces) {
