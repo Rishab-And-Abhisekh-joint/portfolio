@@ -1211,7 +1211,7 @@ const HeroSection: React.FC = () => {
               Get In Touch <Send size={18} className="group-hover:translate-x-1 transition-transform duration-300" />
             </motion.a>
             <motion.a 
-              href="/Resume.pdf" 
+              href="/Rishab_Acharjee_1_Resume.pdf" 
               download="Rishab_Acharjee_Resume.pdf" 
               className={`group px-8 py-4 ${colors.buttonGradient} rounded-xl text-white font-semibold flex items-center gap-2 shadow-xl`} 
               whileHover={{ scale: 1.05, boxShadow: `0 0 40px ${colors.primary}80` }} 
